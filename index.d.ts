@@ -7,14 +7,7 @@ export const FullSelect: SelectValueType;
 export type TreeKeyType = string | number | {};
 export type TreeValueType = any;
 
-declare class Tree {
-    constructor(
-        root?: {},
-        parent?: Tree,
-        childrenKey?: TreeKeyType,
-        idKey?: TreeKeyType,
-        onStatusChange?: (treeNode: Tree) => void,
-    );
+export declare class Tree {
 
     isLeaf(): boolean;
     isEqual(treeNode: Tree): boolean;
@@ -24,17 +17,18 @@ declare class Tree {
     isIncompleteSelect(cascade?: boolean): boolean;
     selectStatus(cascade?: boolean): SelectValueType;
 
-    getLeafCount(): number;
-    getSelectedLeafCount(): number;
-    getDeepth(): number;
+    getLeafCount(params?: {includeWeakNode?: boolean}): number;
+    getSelectedLeafCount(params?: {includeWeakNode?: boolean}): number;
+    getDeepth(params?: {includeWeakNode?: boolean}): number;
     getInfo(): {};
     getId(): TreeValueType;
     getStringId(): string;
     getParent(): Tree | void;
+    getWeakParent(): Tree | void;
     getChildren(): Tree[];
-    getLeafChildren(): Tree[];
-    getLeafChildrenCount(): number;
-    getSelectedLeafChildrenCount(): number;
+    getLeafChildren(params?: {includeWeakNode?: boolean}): Tree[];
+    getLeafChildrenCount(params?: {includeWeakNode?: boolean}): number;
+    getSelectedLeafChildrenCount(params?: {includeWeakNode?: boolean}): number;
     getPath(): string;
 
     setInitialState(selectedIds: TreeKeyType[], cascade?: boolean): Tree[];
@@ -56,4 +50,14 @@ declare class Tree {
     private _stringId(id: TreeKeyType): string;
 }
 
-export default Tree;
+declare function InitTree<T>(
+    root ?: T,
+    parent ?: Tree,
+    childrenKey ?: TreeKeyType,
+    idKey ?: TreeKeyType,
+    onStatusChange?: (treeNode: Tree) => void,
+    rootPath?: (root: T) => string,
+    parentPath?: (root: T) => string,
+): Tree;
+
+export default InitTree;

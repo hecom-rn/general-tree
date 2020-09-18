@@ -1,5 +1,5 @@
 {
-    "name": "general-tree",
+    "name": "@hecom/general-tree",
     "version": "1.1.4",
     "private": false,
     "description": "A general tree support tree operation.",
@@ -7,7 +7,7 @@
     "types": "index.d.ts",
     "repository": {
         "type": "git",
-        "url": "https://github.com/gaoxiaosong/general-tree.git"
+        "url": "https://github.com/hecom-rn/general-tree.git"
     },
     "keywords": [
         "tree",
@@ -17,8 +17,8 @@
     "author": "Xiaosong Gao",
     "license": "MIT",
     "bugs": {
-        "url": "https://github.com/gaoxiaosong/general-tree/issues",
+        "url": "https://github.com/hecom-rn/general-tree.git/issues",
         "email": "gaoxiaosong06@gmail.com"
     },
-    "homepage": "https://github.com/gaoxiaosong/general-tree#readme"
+    "homepage": "https://github.com/hecom-rn/general-tree.git#readme"
 }

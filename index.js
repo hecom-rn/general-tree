@@ -1,9 +1,33 @@
 const kChild = '__treechild__';
 const kParent = '__treeparent__';
+const kWeakParent = '__treeweakparent__';
 
 export const NotSelect = 0;
 export const IncompleteSelect = 0.5;
 export const FullSelect = 1;
+
+function InitTree(params) {
+    const {
+        root,
+        childrenKey = 'children',
+        idKey = 'id',
+        onStatusChange = undefined,
+        rootPath = undefined,
+        parentPath = undefined,
+    } = params
+
+    const cacheTrees = { tress: {}, search: [] };
+    const tree = new Tree(root, undefined, childrenKey, idKey, onStatusChange, rootPath, parentPath, cacheTrees)
+    cacheTrees.search.forEach((item)=> {
+        let tree = cacheTrees.tress[item.path];
+        if (!tree) {
+            tree = new Tree(item.item, undefined, childrenKey, idKey, onStatusChange, rootPath, parentPath, cacheTrees)
+        }
+        item.tree.root[kChild].splice(item.index, 1, tree)
+        tree.getWeakParent().push(item.tree);
+    })
+    return tree;
+}
 
 const Tree = class {
     constructor(
@@ -11,16 +35,33 @@ const Tree = class {
         parent = undefined,
         childrenKey = 'children',
         idKey = 'id',
-        onStatusChange = undefined
+        onStatusChange = undefined,
+        rootPath,
+        parentPath,
+        cacheTrees
     ) {
+        const rawRootPath = rootPath ? rootPath(root) : undefined;
+
         this.idKey = idKey;
+        rawRootPath && (cacheTrees.tress[rawRootPath] = this);
         this.root = {};
+        this.root[kWeakParent] = []
         this.root.info = root || {};
         this.root.path = (parent ? parent.getPath() : '') + '/' + this.getStringId();
         this.root[kParent] = parent;
         this.root[kChild] = this.root.info[childrenKey] ?
-            this.root.info[childrenKey].map(item => {
-                return new Tree(item, this, childrenKey, idKey, onStatusChange);
+            this.root.info[childrenKey].map((item, index) => {
+                if (rawRootPath && parentPath && rawRootPath !== parentPath(item)) {
+                    cacheTrees.search.push({
+                        tree: this,
+                        index: index,
+                        item: item,
+                        path: rootPath(item),
+                    })
+                    return {};
+                } else {
+                    return new Tree(item, this, childrenKey, idKey, onStatusChange, rootPath, parentPath, cacheTrees);
+                }
             }) : undefined;
         this.onStatusChange = onStatusChange;
         this.isSelected = NotSelect;
@@ -78,31 +119,59 @@ const Tree = class {
         }
     }
 
-    getLeafCount() {
+    getLeafCount(params = {}) {
+        const {includeWeakNode = false, tress = []} = params
+        params = {includeWeakNode, tress};
+
         if (this.isLeaf()) {
+            tress.push(this);
             return 1;
         } else {
             return this.getChildren()
-                .reduce((prv, cur) => prv + cur.getLeafCount(), 0);
+                .reduce((prv, cur) => {
+                    if (tress.indexOf(cur) >= 0) {
+                        return prv;
+                    } else if (cur.getWeakParent().indexOf(this) >= 0 && !includeWeakNode) {
+                        return prv;
+                    } else {
+                        return prv + cur.getLeafCount(params);
+                    }
+                }, 0);
         }
     }
 
-    getSelectedLeafCount() {
+    getSelectedLeafCount(params = {}) {
+        const {includeWeakNode = false, tress = []} = params
+        params = {includeWeakNode, tress};
+
         if (this.isLeaf()) {
+            tress.push(this);
             return this.isSelected;
         } else {
             return this.getChildren()
-                .reduce((prv, cur) => prv + cur.getSelectedLeafCount(), 0);
+                .reduce((prv, cur) => {
+                    if (tress.indexOf(cur) >= 0) {
+                        return prv;
+                    } else if (cur.getWeakParent().indexOf(this) >= 0 && !includeWeakNode) {
+                        return prv;
+                    } else {
+                        return prv + cur.getSelectedLeafCount(params);
+                    }
+                }, 0);
         }
     }
 
-    getDeepth() {
+    getDeepth(params = {}) {
+        const {includeWeakNode = false} = params
         if (this.isLeaf()) {
             return 1;
         } else {
             return 1 + this.getChildren()
                 .reduce((prv, cur) => {
-                    const curDeepth = cur.getDeepth();
+                    let curDeepth = prv;
+                    if (!(cur.getWeakParent().indexOf(this) >= 0 && !includeWeakNode)) {
+                        curDeepth = cur.getDeepth(params);
+                    } 
                     if (curDeepth > prv) {
                         return curDeepth;
                     } else {
@@ -132,6 +201,9 @@ const Tree = class {
     getParent() {
         return this.root[kParent];
     }
+    getWeakParent() {
+        return this.root[kWeakParent];
+    }
     getChildren() {
         return this.root[kChild];
     }
@@ -139,40 +211,77 @@ const Tree = class {
         return this.root.path;
     }
 
-    getLeafChildren() {
+    getLeafChildren(params = {}) {
+        const {includeWeakNode = false, tress = []} = params
+        params = {includeWeakNode, tress};
+        
         if (this.isLeaf()) {
-            return [this];
+            tress.push(this);
+            return tress;
         } else {
             return this.getChildren()
                 .reduce((prv, cur) => {
-                    prv.push(...cur.getLeafChildren());
-                    return prv;
-                }, []);
+                    if (prv.indexOf(cur) >= 0) {
+                        return prv;
+                    } else if (cur.getWeakParent().indexOf(this) >= 0 && !includeWeakNode) {
+                        return prv;
+                    } else {
+                        cur.getLeafChildren(params)
+                        return prv;
+                    }
+                }, tress);
         }
     }
 
-    getLeafChildrenCount() {
-        if (this.root.leafCount !== undefined) {
+    getLeafChildrenCount(params = {}) {
+        const {includeWeakNode = false, tress = []} = params
+        if (!includeWeakNode && this.root.leafCount !== undefined) {
             return this.root.leafCount;
         }
+        params = {includeWeakNode, tress};
+
         let count;
         if (this.isLeaf()) {
+            tress.push(this);
             count = 1;
         } else {
             count = this.getChildren()
-                .reduce((prv, cur) => prv + cur.getLeafChildrenCount(), 0);
+                .reduce((prv, cur) => {
+                    if (tress.indexOf(cur) >= 0) {
+                        return prv;
+                    } else if (cur.getWeakParent().indexOf(this) >= 0 && !includeWeakNode) {
+                        return prv;
+                    } else {
+                        return prv + cur.getLeafChildrenCount(params);;
+                    }
+                }, 0);
         }
-        this.root.leafCount = count;
+
+        if (!includeWeakNode) {
+            this.root.leafCount = count;
+        }
         return count;
     }
 
-    getSelectedLeafChildrenCount() {
+    getSelectedLeafChildrenCount(params = {}) {
+        const {includeWeakNode = false, tress = []} = params
+        params = {includeWeakNode, tress};
+
         let count;
         if (this.isLeaf()) {
+            tress.push(this);
             count = this.isFullSelect() ? 1 : 0;
         } else {
             count = this.getChildren()
-                .reduce((prv, cur) => prv + cur.getSelectedLeafChildrenCount(), 0);
+                .reduce((prv, cur) => {
+                    if (tress.indexOf(cur) >= 0) {
+                        return prv;
+                    } else if (cur.getWeakParent().indexOf(this) >= 0 && !includeWeakNode) {
+                        return prv;
+                    } else {
+                        return prv + cur.getSelectedLeafChildrenCount(params);;
+                    }
+                }, 0);
         }
         return count;
     }
@@ -189,7 +298,13 @@ const Tree = class {
             if (!this.isLeaf() && (!hasSelf || !cascade)) {
                 this.getChildren().forEach(subNode => {
                     const r = subNode.setInitialState(selectedIds, cascade);
-                    r.forEach(item => result.push(item));
+                    r.forEach(item => {
+                        if(result.indexOf(item) < 0){
+                            result.push(item)
+                        } else {
+                            item.update(cascade);
+                        }
+                    });
                 });
             }
         }
@@ -205,6 +320,9 @@ const Tree = class {
                 .forEach(treeNode => treeNode._fromUpNotification(this.isSelected));
         }
         cascade && this.getParent() && this.getParent()._fromDownNotification();
+        cascade && this.getWeakParent().forEach((item) => {
+            item._fromDownNotification()
+        })
         this._onStatusChange();
     }
 
@@ -225,7 +343,11 @@ const Tree = class {
             this.getChildren()
                 .forEach(child => {
                     const chresult = child.search(text, keys, multiselect, exactly);
-                    chresult.forEach(item => result.push(item));
+                    chresult.forEach(item => {
+                        if (result.indexOf(item) < 0) {
+                            result.push(item)
+                        }
+                    });
                 });
         }
         return result;
@@ -253,8 +375,12 @@ const Tree = class {
                     if (r) {
                         if (!prv) {
                             prv = [];
-                        }
-                        prv.push(r);
+                        } 
+                        r.forEach((item)=> {
+                            if (prv.indexOf(item) < 0) {
+                                prv.push(item);
+                            }
+                        })
                     }
                     return prv;
                 }, undefined);
@@ -272,6 +398,9 @@ const Tree = class {
     _fromDownNotification() {
         this._onStatusChange();
         this.getParent() && this.getParent()._fromDownNotification();
+        this.getWeakParent().forEach((item) => {
+            item._fromDownNotification()
+        })
     }
 
     _onStatusChange() {
@@ -292,4 +421,4 @@ const Tree = class {
     }
 };
 
-export default Tree;
+export default InitTree;
