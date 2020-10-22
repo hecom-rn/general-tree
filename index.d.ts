@@ -27,8 +27,7 @@ export declare class Tree {
     getWeakParent(): Tree | void;
     getChildren(): Tree[];
     getLeafChildren(params?: {includeWeakNode?: boolean}): Tree[];
-    getLeafChildrenCount(params?: {includeWeakNode?: boolean}): number;
-    getSelectedLeafChildrenCount(params?: {includeWeakNode?: boolean}): number;
+    getFullSelectChildren(cascade?: boolean,params?: {includeWeakNode?: boolean}): Tree[]
     getPath(): string;
 
     setInitialState(selectedIds: TreeKeyType[], cascade?: boolean): Tree[];

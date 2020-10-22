@@ -98,7 +98,7 @@ Then you can call `update` method to change a tree node selection status automat
 * `getParent(): Tree?`
 * `getChildren(): Tree[]?`
 * `getLeafChildren(): Tree[]`
-* `getLeafChildrenCount(): number`
+* `getFullSelectChildren(cascade?: boolean): Tree[]`
 * `getSelectedLeafChildrenCount(): number`
 * `getPath(): string`
 * `setInitialState(selectedIds: any[], cascade: boolean): Tree[]`
