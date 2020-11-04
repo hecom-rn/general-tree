@@ -191,15 +191,15 @@ const Tree = class {
         }
     }
 
-    getFullSelectChildren(cascade, params = {}) {
-        const {includeWeakNode = false, tress = []} = params;
-        params = {includeWeakNode, tress};
-        
-        if (this.isFullSelect()) {
+    getFullSelectChildren(cascade = true, params = {}) {
+        const { includeWeakNode = false, tress = [] } = params;
+        params = { includeWeakNode, tress };
+
+        if (this.isFullSelect(cascade)) {
             tress.push(this);
-            return tress;
-        } else if(cascade && this.isIncompleteSelect()) {
-            return this.getChildren()
+        }
+        if (!cascade || (cascade && this.isIncompleteSelect())) {
+            !this.isLeaf() && this.getChildren()
                 .reduce((prv, cur) => {
                     if (prv.indexOf(cur) >= 0) {
                         return prv;
@@ -210,9 +210,8 @@ const Tree = class {
                         return prv;
                     }
                 }, tress);
-        } else {
-            return tress
         }
+        return tress
     }
 
     getLeafCount(params = {}) {
