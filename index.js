@@ -263,6 +263,7 @@ const Tree = class {
     setInitialState(selectedIds, cascade = true) {
         const result = [];
         if (Array.isArray(selectedIds) && selectedIds.length > 0) {
+            selectedIds = selectedIds.filter((value)=> !(typeof value === 'undefined' || value === null))
             selectedIds = selectedIds.map(item => this._stringId(item));
             const hasSelf = selectedIds.indexOf(this.getStringId()) >= 0;
             if (hasSelf) {
