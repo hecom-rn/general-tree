@@ -74,19 +74,41 @@ const Tree = class {
         return this.getStringId() === treeNode.getStringId();
     }
 
-    isFullSelect(cascade = true) {
-        return this.selectStatus(cascade) === FullSelect;
+    isFullSelect(cascade = true, multiselect = true) {
+        return this.selectStatus(cascade, multiselect) === FullSelect;
     }
-    isNotSelect(cascade = true) {
-        return this.selectStatus(cascade) === NotSelect;
+    isNotSelect(cascade = true, multiselect = true) {
+        return this.selectStatus(cascade, multiselect) === NotSelect;
     }
-    isIncompleteSelect(cascade = true) {
-        return this.selectStatus(cascade) === IncompleteSelect;
+    isIncompleteSelect(cascade = true, multiselect = true) {
+        return this.selectStatus(cascade, multiselect) === IncompleteSelect;
     }
 
-    selectStatus(cascade = true) {
-        if (this.isLeaf() || !cascade) {
+    selectStatus(cascade = true, multiselect = true) {
+        if (this.isLeaf()) {
             return this.isSelected;
+        } else if (!cascade) {
+            const existSelect = (treeNode) => {
+                if (treeNode.isSelected === NotSelect) {
+                    const children = treeNode.getChildren();
+                    if (!children || children?.length === 0) {
+                        return false;
+                    } else {
+                        return children.reduce((prv, cur) => {
+                            return prv || existSelect(cur);
+                        }, false);
+                    }
+                } else {
+                    return true;
+                }
+            };
+            if (multiselect || this.isSelected != NotSelect) {
+                return this.isSelected;
+            } else if (existSelect(this)) {
+                return IncompleteSelect;
+            } else {
+                return NotSelect;
+            }
         } else {
             const leafCount = this.getLeafCount();
             if (leafCount === 0) {
