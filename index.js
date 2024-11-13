@@ -283,6 +283,18 @@ const Tree = class {
     }
 
     setInitialState(selectedIds, cascade = true) {
+        const result = this._innerSetInitialState(selectedIds, cascade);
+        if (Array.isArray(selectedIds) && selectedIds.length > 0) {
+            result?.sort((a, b) => {
+                const indexA = selectedIds.indexOf(a?.getStringId());
+                const indexB = selectedIds.indexOf(b?.getStringId());
+                return indexA - indexB;
+            });
+        }
+        return result;
+    }
+
+    _innerSetInitialState(selectedIds, cascade = true) {
         const result = [];
         if (Array.isArray(selectedIds) && selectedIds.length > 0) {
             selectedIds = selectedIds.filter((value)=> !(typeof value === 'undefined' || value === null))
