@@ -112,7 +112,28 @@ const Tree = class {
         } else {
             const leafCount = this.getLeafCount();
             if (leafCount === 0) {
-                return this.isSelected;
+                if (this.isLeaf()) {
+                    return this.isSelected;
+                }
+                const children = this.getChildren();
+                if (!children || children.length === 0) {
+                    return this.isSelected;
+                }
+                let anySelected = false;
+                let allSelected = true;
+                for (const child of children) {
+                    if (child.isSelected === FullSelect) {
+                        anySelected = true;
+                    } else {
+                        allSelected = false;
+                        if (child.isSelected > 0) {
+                            anySelected = true;
+                        }
+                    }
+                }
+                if (!anySelected) return NotSelect;
+                if (allSelected) return FullSelect;
+                return IncompleteSelect;
             }
             const selectedLeafs = this.getSelectedLeafCount();
             if (leafCount > selectedLeafs) {
